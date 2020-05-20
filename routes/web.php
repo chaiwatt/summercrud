@@ -22,3 +22,4 @@ Route::get('create','SummernoteController@Create')->name('create');
 Route::post('createsave','SummernoteController@CreateSave')->name('createsave');
 Route::get('edit/{id}','SummernoteController@Edit')->name('edit');
 Route::post('editsave/{id}','SummernoteController@EditSave')->name('editsave');
+Route::get('delete/{id}','SummernoteController@Delete')->name('delete');
