@@ -23,14 +23,14 @@ class SummernoteController extends Controller
         $dom = new \domdocument();
         $dom->loadHtml('<?xml encoding="UTF-8">'.$detail);
         $images = $dom->getelementsbytagname('img');
-        $imgarray = array();
+        $imgarray = array(); //สร้าง array เก็บรูปจาก summernote
         foreach($images as $k => $img){
             $data = $img->getattribute('src');
             list($type, $data) = explode(';', $data);
             list(, $data)= explode(',', $data);
             $data = base64_decode($data);
             $image_name= time().$k.'.png';
-            $imgarray[] = URL('')."/images/".$image_name;
+            $imgarray[] = URL('')."/images/".$image_name;  //นำรูปมาเก็บใน array
             $path = public_path() .'/images/'. $image_name;
             file_put_contents($path, $data);
             $img->removeattribute('src');
@@ -40,7 +40,7 @@ class SummernoteController extends Controller
         $summernote = new Summernote;
         $summernote->content = $detail;
         $summernote->save();
-        foreach($imgarray as $item){
+        foreach($imgarray as $item){  //เพิ่มรายการรูปใน SummernoteImage
             $summernoteimage = new SummernoteImage();
             $summernoteimage->post_id = $summernote->id;
             $summernoteimage->file = $item;
@@ -59,7 +59,7 @@ class SummernoteController extends Controller
         $dom = new \domdocument();
         $dom->loadHtml('<?xml encoding="UTF-8">'.$detail);
         $images = $dom->getelementsbytagname('img');
-        $comming_array  = Array();
+        $comming_array  = Array();   //การแก้ไข สร้า array
         foreach($images as $k => $img){
             $data = $img->getattribute('src');
             if(strpos($data, "data:image") !== false){
@@ -68,20 +68,20 @@ class SummernoteController extends Controller
                 $data = base64_decode($data);
                 $image_name= time().$k.'.png';
                 $path = public_path() .'/images/'. $image_name;
-                $comming_array[] = URL('')."/images/".$image_name;
+                $comming_array[] = URL('')."/images/".$image_name; //ถ้ามีการเพิ่มรูปมาใหม่ ให้เก็บใน array
                 file_put_contents($path, $data);
                 $img->removeattribute('src');
                 $img->setattribute('src', URL('')."/images/".$image_name);
             }else{
-                $comming_array[] =  $data ;
+                $comming_array[] =  $data ; 
             }
         }
 
-        $summerimgs = SummernoteImage::where('post_id',$id)->whereNotIn('file',$comming_array)->get();
+        $summerimgs = SummernoteImage::where('post_id',$id)->whereNotIn('file',$comming_array)->get(); 
         if ($summerimgs->count() > 0 ){
             foreach ($summerimgs as $summerimg){
              $url = str_replace(URL('').'/' , '' , $summerimg->file);
-                unlink($url);
+                @unlink($url);
             }
             $summerimgs = SummernoteImage::where('post_id',$id)->whereNotIn('file',$comming_array)->delete();
         }

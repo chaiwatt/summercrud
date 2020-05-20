@@ -8,7 +8,7 @@
                             @csrf
                             <div class="form-group">
                                 <label>บทความ<span class="text-danger"></span></label>
-                                <textarea name="content" id="summernote" class="summernote" placeholder="บทความ">{!!$summernote->content!!}</textarea>
+                                <textarea name="content" id="summernote" class="summernote" placeholder="บทความ">{{$summernote->content}}</textarea>
                             </div>
                             <div class="text-right">
                                 <button type="submit" class="btn btn-primary">Edit</button>
