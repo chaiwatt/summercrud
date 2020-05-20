@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Summernote;
+use App\SummernoteImage;
 use Illuminate\Http\Request;
 
 class SummernoteController extends Controller
@@ -22,33 +23,97 @@ class SummernoteController extends Controller
         $dom = new \domdocument();
         $dom->loadHtml('<?xml encoding="UTF-8">'.$detail);
         $images = $dom->getelementsbytagname('img');
+        $imgarray = array();
         foreach($images as $k => $img){
             $data = $img->getattribute('src');
             list($type, $data) = explode(';', $data);
             list(, $data)= explode(',', $data);
             $data = base64_decode($data);
             $image_name= time().$k.'.png';
+            $imgarray[] = URL('')."/images/".$image_name;
             $path = public_path() .'/images/'. $image_name;
             file_put_contents($path, $data);
             $img->removeattribute('src');
-            $img->setattribute('src', "images/".$image_name);
+            $img->setattribute('src', URL('')."/images/".$image_name);
         }
         $detail = $dom->savehtml();
         $summernote = new Summernote;
         $summernote->content = $detail;
         $summernote->save();
-        // return redirect()->back();
+        foreach($imgarray as $item){
+            $summernoteimage = new SummernoteImage();
+            $summernoteimage->post_id = $summernote->id;
+            $summernoteimage->file = $item;
+            $summernoteimage->save();
+        }
         return redirect()->route('index');
     }
 
     public function Edit($id){
         $summernote = Summernote::find($id);
-        // return $summernote ;
         return view('edit')->withSummernote($summernote);
     }
 
     public function EditSave(Request $request,$id){
+        $detail=$request->content;
+        $dom = new \domdocument();
+        $dom->loadHtml('<?xml encoding="UTF-8">'.$detail);
+        $images = $dom->getelementsbytagname('img');
+        $comming_array  = Array();
+        foreach($images as $k => $img){
+            $data = $img->getattribute('src');
+            if(strpos($data, "data:image") !== false){
+                list($type, $data) = explode(';', $data);
+                list(, $data)= explode(',', $data);
+                $data = base64_decode($data);
+                $image_name= time().$k.'.png';
+                $path = public_path() .'/images/'. $image_name;
+                $comming_array[] = URL('')."/images/".$image_name;
+                file_put_contents($path, $data);
+                $img->removeattribute('src');
+                $img->setattribute('src', URL('')."/images/".$image_name);
+            }else{
+                $comming_array[] =  $data ;
+            }
+        }
+
+        $summerimgs = SummernoteImage::where('post_id',$id)->whereNotIn('file',$comming_array)->get();
+        if ($summerimgs->count() > 0 ){
+            foreach ($summerimgs as $summerimg){
+             $url = str_replace(URL('').'/' , '' , $summerimg->file);
+                unlink($url);
+            }
+            $summerimgs = SummernoteImage::where('post_id',$id)->whereNotIn('file',$comming_array)->delete();
+        }
         
+        $existing_array = SummernoteImage::where('post_id',$id)->pluck('file')->toArray();
+        $unique_array = array_diff($comming_array, $existing_array);
+
+        foreach($unique_array as $item){
+            $summernoteimage = new SummernoteImage();
+            $summernoteimage->post_id = $id;
+            $summernoteimage->file = $item;
+            $summernoteimage->save();
+        }
+        $detail = $dom->savehtml();
+        $summernote = Summernote::find($id);
+        $summernote->update([
+            'content' => $detail
+        ]);
+        return redirect()->route('index');
+    }
+
+    public function Delete($id){
+        $summerimgs = SummernoteImage::where('post_id',$id)->get();
+        if ($summerimgs->count() > 0 ){
+            foreach ($summerimgs as $summerimg){
+             $url = str_replace(URL('').'/' , '' , $summerimg->file);
+                unlink($url);
+            }
+            $summerimgs = SummernoteImage::where('post_id',$id)->delete();
+        }
+        Summernote::find($id)->delete();
+        return redirect()->route('index');
     }
 
 }
